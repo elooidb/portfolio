@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Desktop</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="desktop" aria-label="Windows XP inspired portfolio desktop">
+    <section class="desktop-icons" aria-label="Portfolio links">
+      <button class="desktop-icon folder" data-folder="work" aria-label="Open work folder">
+        <span class="icon-art folder-art"></span><span class="label">work</span>
+      </button>
+      <button class="desktop-icon folder" data-folder="freelance" aria-label="Open freelance folder">
+        <span class="icon-art folder-art"></span><span class="label">freelance</span>
+      </button>
+      <button class="desktop-icon folder" data-folder="passion-projects" aria-label="Open passions projects folder">
+        <span class="icon-art folder-art"></span><span class="label">passions<br>projects</span>
+      </button>
+      <a class="desktop-icon document" href="assets/curriculum-vitae.doc" aria-label="Open curriculum vitae document">
+        <span class="icon-art doc-art doc-word"></span><span class="label">curriculum<br>vitae.doc</span>
+      </a>
+      <a class="desktop-icon document" href="assets/me.png" aria-label="Open me image">
+        <span class="icon-art image-art"></span><span class="label">me.png</span>
+      </a>
+    </section>
+
+    <section class="welcome-card" aria-label="Welcome">
+      <h1>Your Name</h1>
+      <p>Portfolio desktop. Open a folder to explore my work.</p>
+    </section>
+
+    <template id="folder-template">
+      <article class="window" role="dialog" aria-modal="false">
+        <header class="window-titlebar">
+          <div class="window-title"><span class="mini-folder"></span><span></span></div>
+          <div class="window-controls">
+            <button class="control minimize" aria-label="Minimize">_</button>
+            <button class="control maximize" aria-label="Maximize">□</button>
+            <button class="control close" aria-label="Close">×</button>
+          </div>
+        </header>
+        <nav class="window-menu" aria-label="Window menu">File&nbsp;&nbsp;Edit&nbsp;&nbsp;View&nbsp;&nbsp;Favorites&nbsp;&nbsp;Tools&nbsp;&nbsp;Help</nav>
+        <div class="window-toolbar">
+          <span class="toolbar-button">← Back</span><span class="toolbar-button">Search</span><span class="toolbar-button">Folders</span>
+        </div>
+        <div class="address-bar"><strong>Address</strong><span></span></div>
+        <div class="window-content"></div>
+      </article>
+    </template>
+  </main>
+
+  <footer class="taskbar" aria-label="Taskbar">
+    <button class="start-button"><span class="start-logo">▦</span> start</button>
+    <div class="taskbar-programs" id="taskbar-programs"></div>
+    <time id="clock" class="clock"></time>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

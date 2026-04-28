@@ -494,7 +494,9 @@ background:linear-gradient(#245edb,#0a246a);padding:0 8px;box-sizing:border-box;
 @media (max-width:720px){}
 
 /* Mobile: keep README files blinking instead of auto-opening */
-50%, 100% { filter: brightness(1.55); background: rgba(255,255,0,.25); }
+@keyframes readmeBlink {
+  0%, 49% { filter: brightness(1); }
+  50%, 100% { filter: brightness(1.55); background: rgba(255,255,0,.25); }
 }
 
 @media (max-width: 720px) {
@@ -611,64 +613,43 @@ background:linear-gradient(#245edb,#0a246a);padding:0 8px;box-sizing:border-box;
 }
 
 
-/* Mobile README blinking fix */
-50%, 100% { opacity: 0.4; }
+/* Mobile README windows: add clear OK button */
+.mobile-readme-actions {
+  display: none;
 }
 
-
-
-
-/* Mobile README soft pulse; stops after first tap/open */
-@keyframes readmeSoftPulse {
-  0%, 100% {
-    opacity: 1;
-    filter: brightness(1);
-    transform: scale(1);
-  }
-  50% {
-    opacity: .78;
-    filter: brightness(1.35);
-    transform: scale(1.035);
-  }
-}
-
-@media (max-width: 768px) {
-  .readme-important:not(.readme-seen) {
-    animation: readmeSoftPulse 1.4s ease-in-out infinite;
+@media (max-width: 720px) {
+  .mobile-readme-window {
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100vh - 56px) !important;
   }
 
-  .readme-important.readme-seen {
-    animation: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    transform: none !important;
+  .mobile-readme-window .window-body {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 92px);
   }
-}
 
-
-/* Final mobile README behavior fix: pulse only, no auto-open */
-@media (max-width: 768px) {
-  .readme-important:not(.readme-seen),
-  [data-name="README.note"]:not(.readme-seen) {
-    animation: readmeSoftPulse 1.4s ease-in-out infinite !important;
+  .mobile-readme-actions {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    padding: 10px;
+    text-align: right;
+    background: #ece9d8;
+    border-top: 1px solid #aca899;
   }
-}
 
-
-/* Robust mobile README pulse */
-@keyframes readmeSoftPulseFixed {
-  0%, 100% { opacity: 1; filter: brightness(1); transform: scale(1); }
-  50% { opacity: .75; filter: brightness(1.35); transform: scale(1.035); }
-}
-@media (max-width: 768px) {
-  [data-name="README.note"]:not(.readme-seen),
-  .readme-important:not(.readme-seen),
-  .desktop-icon .label,
-  .folder-item .label {
-    /* label selectors are intentionally left visually unaffected unless parent has class */
+  .mobile-readme-ok {
+    min-width: 88px;
+    padding: 6px 18px;
+    border: 1px solid #003c74;
+    background: linear-gradient(#fff, #dcd8c8);
+    font: 13px Tahoma, Arial, sans-serif;
+    cursor: pointer;
   }
-  [data-name="README.note"]:not(.readme-seen),
-  .readme-important:not(.readme-seen) {
-    animation: readmeSoftPulseFixed 1.4s ease-in-out infinite !important;
+
+  .mobile-readme-ok:active {
+    background: linear-gradient(#dcd8c8, #fff);
   }
 }

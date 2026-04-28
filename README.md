@@ -188,17 +188,5 @@ Folder windows now display file-type icons only. Thumbnail/preview images inside
 The folder item renderer `createWindowItem()` now outputs only the actual file/folder icon and label. It no longer generates thumbnail preview markup.
 
 
-## Mobile README pulse update
-
-On mobile, README files now use a softer pulse animation instead of a hard blink. The pulse stops after the README is tapped/opened once, with state saved in localStorage.
-
-
-## Mobile README auto-open fix
-
-The core folder auto-open logic now checks `isMobileReadmeMode()` before opening Work or Art README notes. README items also get `data-name="README.note"` and `readme-important` directly from `createWindowItem()`, so the mobile pulse consistently applies.
-
-
-## Deep mobile README auto-open fix
-
-All direct README auto-open calls are now guarded on mobile, and a runtime interceptor suppresses non-user-initiated README opens on mobile while still allowing README files to open when tapped.
-See `README_AUTOOPEN_DIAGNOSTICS.txt` for the scanned README/openItem references.
+## Mobile README OK button
+README files open on both desktop and mobile. On mobile, README windows include an OK button for easy closing.

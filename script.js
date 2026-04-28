@@ -1,3 +1,4 @@
+function isMobileReadmeNoAutoOpen(){return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;}
 const items = {
   work: folder('Work', 'C:\\Portfolio\\Work', [childFile('work-readme','README.note'), childFile('workportfolio','portfolio.html'), childFile('current-waylay-website','waylay.html'), childFile('waylay-waybackmachine','waybackmachine.html')]),
   workportfolio: { type:'external', title:'portfolio.html', address:'https://sites.google.com/view/elooi-de-buck', url:'https://sites.google.com/view/elooi-de-buck' },
@@ -300,6 +301,11 @@ function clearSelections(){document.querySelectorAll('.desktop-icon.selected').f
 
 function iconMiniClass(type){return type==='folder'?'mini-folder':type==='image'?'mini-image':type==='paint'?'mini-paint':type==='bsod'?'mini-recycle':type==='book'?'mini-doc':(type==='external'||type==='ie')?'mini-html':'mini-doc';}
 
+
+function isMobileReadmeMode(){
+  return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+}
+
 function openItem(id){
   const data=items[id];
   if(!data)return;
@@ -360,11 +366,11 @@ function openItem(id){
   playSound('open');
   if(data.type==='paint')initPaintApp(clone);
   if(data.type==='book')initBookApp(clone, data.bookKey);
-  if(id==='art'){
-    window.setTimeout(()=>openItem('art-readme'), 250);
+  if(id==='art' && !isMobileReadmeMode()){
+    window.setTimeout(() => { if (!isMobileReadmeNoAutoOpen()) openItem("art-readme"); }, 250);
   }
-  if(id==='work'){
-    window.setTimeout(()=>openItem('work-readme'), 250);
+  if(id==='work' && !isMobileReadmeMode()){
+    window.setTimeout(() => { if (!isMobileReadmeNoAutoOpen()) openItem("work-readme"); }, 250);
   }
 }
 function openExternalFile(data){
@@ -423,7 +429,7 @@ function closeBsod(){
 function closeWindow(id){const entry=openWindows.get(id);if(!entry)return;entry.windowEl.remove();entry.taskButton.remove();openWindows.delete(id);}
 function minimizeWindow(id){const entry=openWindows.get(id);if(!entry)return;entry.windowEl.classList.add('minimized');entry.taskButton.classList.remove('active');}
 function toggleMaximize(id){const entry=openWindows.get(id);if(!entry)return;const win=entry.windowEl;if(win.classList.contains('maximized')){win.classList.remove('maximized');win.querySelector('.maximize').textContent='□';}else{win.classList.remove('minimized');win.classList.add('maximized');win.querySelector('.maximize').textContent='❐';focusWindow(win);}}
-function createWindowItem(item){const button=document.createElement('button');button.className=`desktop-icon icon-only-item ${item.type==='folder'?'folder':'document'}`;button.innerHTML=`<span class="icon-art ${item.type==='folder'?'folder-art':fileIconClass(item.id)}"></span><span class="label">${item.label}</span>`;button.addEventListener('click',()=>{document.querySelectorAll('.window-content .desktop-icon.selected').forEach(el=>el.classList.remove('selected'));button.classList.add('selected');playSound('click');openItem(item.id);});return button;}
+function createWindowItem(item){const button=document.createElement('button');const isReadme=item.label==='README.note'||String(item.id).includes('readme');button.className=`desktop-icon icon-only-item ${item.type==='folder'?'folder':'document'} ${isReadme?'readme-important':''}`;button.dataset.name=item.label;button.innerHTML=`<span class="icon-art ${item.type==='folder'?'folder-art':fileIconClass(item.id)}"></span><span class="label">${item.label}</span>`;button.addEventListener('click',()=>{document.querySelectorAll('.window-content .desktop-icon.selected').forEach(el=>el.classList.remove('selected'));button.classList.add('selected');playSound('click');openItem(item.id);});return button;}
 function thumbnailClass(id,type){const data=items[id]||{};if(type==='folder')return 'folder-thumb';if(data.type==='image')return 'image-thumb';if((data.title||'').match(/mp4|mov/i))return 'video-thumb';if(data.type==='ie'||data.type==='external'||(data.title||'').match(/html/i))return 'web-thumb';if((data.title||'').match(/website/i))return 'web-thumb';return 'doc-thumb';}
 function thumbnailContent(id,type){const data=items[id]||{};if(type==='folder')return '<span class="thumb-folder-tab"></span><span class="thumb-folder-page"></span>';if(data.type==='image'&&data.asset)return `<img src="${data.asset}" alt="">`;if((data.title||'').match(/mp4|mov/i))return '<span class="play-triangle">▶</span>';if((data.title||'').match(/website/i))return '<span class="browser-bar"></span><span class="browser-block"></span>';return '<span class="doc-lines"></span>'}
 function fileIconClass(id){const type=items[id]?.type;if(type==='image')return'image-art';if(type==='book')return'exe-art';if(type==='ie'||type==='external')return'html-art';return'doc-art';}
@@ -812,4 +818,45 @@ document.querySelectorAll('[data-name="README.note"]').forEach(el=>{
       return originalOpenArtReadme.apply(this, arguments);
     }
   };
+})();
+
+
+/* README_MOBILE_AUTOOPEN_INTERCEPTOR_V2
+   Prevent README files from auto-opening on mobile, while allowing user taps/clicks. */
+(function(){
+  if (window.__readmeMobileInterceptorInstalled) return;
+  window.__readmeMobileInterceptorInstalled = true;
+
+  let userGestureUntil = 0;
+  ["pointerdown","touchstart","mousedown","keydown","click","dblclick"].forEach(evt => {
+    document.addEventListener(evt, () => { userGestureUntil = Date.now() + 900; }, true);
+  });
+
+  function isMobile(){
+    return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+  }
+
+  function isReadmeId(id){
+    return String(id || "").toLowerCase().includes("readme");
+  }
+
+  function install(){
+    if (typeof window.openItem !== "function" || window.openItem.__readmeMobileWrapped) return false;
+    const originalOpenItem = window.openItem;
+    window.openItem = function(id){
+      const userInitiated = Date.now() < userGestureUntil;
+      if (isMobile() && isReadmeId(id) && !userInitiated) {
+        return null;
+      }
+      return originalOpenItem.apply(this, arguments);
+    };
+    window.openItem.__readmeMobileWrapped = true;
+    return true;
+  }
+
+  install();
+  const interval = setInterval(() => {
+    if (install()) clearInterval(interval);
+  }, 50);
+  setTimeout(() => clearInterval(interval), 3000);
 })();

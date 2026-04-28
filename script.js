@@ -190,9 +190,107 @@ function playSound(name){
 layoutDesktopIcons();
 enableDesktopIconDragging();
 
-function layoutDesktopIcons(){const icons=[...desktopIcons.querySelectorAll('.desktop-icon')];const saved=JSON.parse(localStorage.getItem('xpDesktopIconPositions')||'{}');icons.forEach((icon,index)=>{const id=icon.dataset.open;const pos=saved[id]||{left:0,top:index*88};icon.style.left=`${pos.left}px`;icon.style.top=`${pos.top}px`;});}
-function saveDesktopIconPosition(icon){const saved=JSON.parse(localStorage.getItem('xpDesktopIconPositions')||'{}');saved[icon.dataset.open]={left:icon.offsetLeft,top:icon.offsetTop};localStorage.setItem('xpDesktopIconPositions',JSON.stringify(saved));}
-function enableDesktopIconDragging(){desktopIcons.querySelectorAll('.desktop-icon').forEach(icon=>{let startX=0,startY=0,initialLeft=0,initialTop=0,moved=false,dragging=false;icon.addEventListener('pointerdown',event=>{if(event.button!==0)return;dragging=true;moved=false;startX=event.clientX;startY=event.clientY;initialLeft=icon.offsetLeft;initialTop=icon.offsetTop;icon.setPointerCapture(event.pointerId);clearSelections();icon.classList.add('selected');});icon.addEventListener('pointermove',event=>{if(!dragging)return;const dx=event.clientX-startX,dy=event.clientY-startY;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;if(!moved)return;icon.classList.add('dragging');const maxLeft=Math.max(0,desktopIcons.clientWidth-icon.offsetWidth);const maxTop=Math.max(0,desktopIcons.clientHeight-icon.offsetHeight);icon.style.left=`${Math.min(maxLeft,Math.max(0,initialLeft+dx))}px`;icon.style.top=`${Math.min(maxTop,Math.max(0,initialTop+dy))}px`;});icon.addEventListener('pointerup',event=>{if(!dragging)return;dragging=false;icon.classList.remove('dragging');try{icon.releasePointerCapture(event.pointerId);}catch{} if(moved)saveDesktopIconPosition(icon);else { playSound('click'); openItem(icon.dataset.open); }});});}
+function layoutDesktopIcons(){
+  const order=['work','freelance','art','tattoo','about','paint','missing-skills'];
+  const icons=[...desktopIcons.querySelectorAll(':scope > .desktop-icon')];
+  icons.sort((a,b)=>order.indexOf(a.dataset.open)-order.indexOf(b.dataset.open));
+  icons.forEach(icon=>desktopIcons.appendChild(icon));
+
+  const layoutVersion='free-placement-two-column-v4';
+  if(localStorage.getItem('xpDesktopLayoutVersion')!==layoutVersion){
+    localStorage.removeItem('xpDesktopIconPositions');
+    localStorage.setItem('xpDesktopLayoutVersion',layoutVersion);
+  }
+
+  const saved=JSON.parse(localStorage.getItem('xpDesktopIconPositions')||'{}');
+  const gridX=118, gridY=104, left=0, top=0;
+  icons.forEach((icon,index)=>{
+    const id=icon.dataset.open;
+    let pos=saved[id];
+    if(!pos){
+      const col=index%2;
+      const row=Math.floor(index/2);
+      pos={left:left+col*gridX,top:top+row*gridY};
+    }
+    const clamped=clampDesktopIconPosition(icon,pos.left,pos.top);
+    icon.style.left=`${clamped.left}px`;
+    icon.style.top=`${clamped.top}px`;
+  });
+}
+
+function clampDesktopIconPosition(icon,left,top){
+  const maxLeft=Math.max(0,desktopIcons.clientWidth-icon.offsetWidth);
+  const maxTop=Math.max(0,desktopIcons.clientHeight-icon.offsetHeight);
+  return {
+    left:Math.min(maxLeft,Math.max(0,left)),
+    top:Math.min(maxTop,Math.max(0,top))
+  };
+}
+
+function saveDesktopIconPosition(icon){
+  const pos=clampDesktopIconPosition(icon,icon.offsetLeft,icon.offsetTop);
+  icon.style.left=`${pos.left}px`;
+  icon.style.top=`${pos.top}px`;
+  const saved=JSON.parse(localStorage.getItem('xpDesktopIconPositions')||'{}');
+  saved[icon.dataset.open]={left:pos.left,top:pos.top};
+  localStorage.setItem('xpDesktopIconPositions',JSON.stringify(saved));
+}
+
+function enableDesktopIconDragging(){
+  desktopIcons.querySelectorAll(':scope > .desktop-icon').forEach(icon=>{
+    if(icon.dataset.dragReady==='true')return;
+    icon.dataset.dragReady='true';
+    let startX=0,startY=0,initialLeft=0,initialTop=0,moved=false,dragging=false;
+
+    icon.addEventListener('pointerdown',event=>{
+      if(event.button!==0)return;
+      dragging=true;
+      moved=false;
+      startX=event.clientX;
+      startY=event.clientY;
+      initialLeft=icon.offsetLeft;
+      initialTop=icon.offsetTop;
+      icon.setPointerCapture(event.pointerId);
+      clearSelections();
+      icon.classList.add('selected');
+    });
+
+    icon.addEventListener('pointermove',event=>{
+      if(!dragging)return;
+      const dx=event.clientX-startX,dy=event.clientY-startY;
+      if(Math.abs(dx)+Math.abs(dy)>4)moved=true;
+      if(!moved)return;
+      icon.classList.add('dragging');
+      const pos=clampDesktopIconPosition(icon,initialLeft+dx,initialTop+dy);
+      icon.style.left=`${pos.left}px`;
+      icon.style.top=`${pos.top}px`;
+      event.preventDefault();
+    });
+
+    icon.addEventListener('pointerup',event=>{
+      if(!dragging)return;
+      dragging=false;
+      icon.classList.remove('dragging');
+      try{icon.releasePointerCapture(event.pointerId);}catch{}
+      if(moved){
+        saveDesktopIconPosition(icon);
+      }else{
+        playSound('click');
+        openItem(icon.dataset.open);
+      }
+    });
+
+    icon.addEventListener('pointercancel',event=>{
+      dragging=false;
+      icon.classList.remove('dragging');
+      try{icon.releasePointerCapture(event.pointerId);}catch{}
+    });
+  });
+}
+
+window.addEventListener('resize',()=>{
+  desktopIcons.querySelectorAll(':scope > .desktop-icon').forEach(icon=>saveDesktopIconPosition(icon));
+});
 
 document.querySelectorAll('.start-contact-button,[data-open]').forEach(button=>{if(button.closest('.desktop-icons'))return;button.addEventListener('click',()=>{playSound('click');openItem(button.dataset.open);});});
 desktop.addEventListener('click',event=>{if(event.target===desktop)clearSelections();});
@@ -587,29 +685,6 @@ window.XP_ITEM_METADATA = Object.assign({}, window.XP_ITEM_METADATA || {}, {
   }
 })();
 
-let lastClick=0;
-document.querySelectorAll('.desktop-icon').forEach(i=>{
- i.onclick=()=>{
-  document.querySelectorAll('.desktop-icon').forEach(x=>x.classList.remove('selected'));
-  i.classList.add('selected');
-  let now=Date.now();
-  if(now-lastClick<300){i.ondblclick&&i.ondblclick();}
-  lastClick=now;
- }
-});
-
-
-
-function openProject(title,img,desc){
- let w=document.createElement('div');
- w.className='window';
- w.innerHTML=`<div class="title-bar">${title}</div><img src="${img}" style="width:100%"><p>${desc}</p>`;
- document.body.appendChild(w);
-}
-
-
-
-
 /* Robust sound tray toggle + fallback XP clock */
 window.soundEnabled = (typeof window.soundEnabled === "boolean") ? window.soundEnabled : true;
 
@@ -639,3 +714,274 @@ document.addEventListener("DOMContentLoaded", function () {
   updateXPTrayClock();
   setInterval(updateXPTrayClock, 30000);
 });
+
+
+
+/* ===== Override: minimal book UI + mobile README blinking ===== */
+(function () {
+  function escapeHtml(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function isMobileViewport() {
+    return window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
+  }
+
+  function getWindowLayer() {
+    return document.getElementById("windows") || document.getElementById("desktop") || document.body;
+  }
+
+  function uniqueId(prefix) {
+    return prefix + "-" + Math.random().toString(36).slice(2, 9);
+  }
+
+  function focusXPWindow(win) {
+    if (typeof bringToFront === "function") {
+      try { bringToFront(win); return; } catch(e) {}
+    }
+    window.__xpZ = (window.__xpZ || 1000) + 1;
+    win.style.zIndex = window.__xpZ;
+  }
+
+  function makeXPWindow(title, content, opts = {}) {
+    const win = document.createElement("div");
+    win.className = "window xp-generated-window";
+    win.id = opts.id || uniqueId("window");
+    win.style.display = "block";
+    win.style.left = opts.left || "min(90px, 5vw)";
+    win.style.top = opts.top || "min(80px, 8vh)";
+    win.style.width = opts.width || "min(820px, calc(100vw - 24px))";
+    win.style.height = opts.height || "min(620px, calc(100vh - 70px))";
+    win.dataset.title = title;
+    win.innerHTML = `
+      <div class="title-bar">
+        <span>${escapeHtml(title)}</span>
+        <div class="window-controls">
+          <button type="button" data-win-minimize aria-label="Minimize">_</button>
+          <button type="button" data-win-maximize aria-label="Maximize">□</button>
+          <button type="button" data-win-close aria-label="Close">×</button>
+        </div>
+      </div>
+      <div class="window-body">${content}</div>
+      <div class="resize-handle" aria-hidden="true"></div>
+    `;
+    getWindowLayer().appendChild(win);
+    win.querySelector("[data-win-close]").addEventListener("click", () => win.remove());
+    win.querySelector("[data-win-minimize]").addEventListener("click", () => win.style.display = "none");
+    win.querySelector("[data-win-maximize]").addEventListener("click", () => {
+      if (win.dataset.maximized === "true") {
+        win.style.left = win.dataset.prevLeft || "80px";
+        win.style.top = win.dataset.prevTop || "80px";
+        win.style.width = win.dataset.prevWidth || "820px";
+        win.style.height = win.dataset.prevHeight || "620px";
+        win.dataset.maximized = "false";
+      } else {
+        win.dataset.prevLeft = win.style.left;
+        win.dataset.prevTop = win.style.top;
+        win.dataset.prevWidth = win.style.width;
+        win.dataset.prevHeight = win.style.height;
+        win.style.left = "0";
+        win.style.top = "0";
+        win.style.width = "100vw";
+        win.style.height = "calc(100vh - 40px)";
+        win.dataset.maximized = "true";
+      }
+      focusXPWindow(win);
+    });
+    win.addEventListener("mousedown", () => focusXPWindow(win));
+    focusXPWindow(win);
+    if (typeof registerWindow === "function") {
+      try { registerWindow(win, title); } catch(e) {}
+    }
+    if (typeof playOpenSound === "function") {
+      try { playOpenSound(); } catch(e) {}
+    }
+    return win;
+  }
+
+  function artItems() {
+    return [
+      { name: "README.note", icon: "assets/icons/note.svg", action: "openArtReadme" },
+      { name: "observational.exe", icon: "assets/icons/exe.svg", action: "openArtBook", book: "observational.exe" },
+      { name: "experimental.exe", icon: "assets/icons/exe.svg", action: "openArtBook", book: "experimental.exe" },
+      { name: "diary_DONOTREADTHIS.exe", icon: "assets/icons/exe.svg", action: "openArtBook", book: "diary_DONOTREADTHIS.exe" }
+    ];
+  }
+
+  function fileGrid(items) {
+    return `
+      <div class="folder-toolbar">
+        <button type="button" class="xp-small-button" data-close-current>Back</button>
+        <span class="folder-toolbar-spacer"></span>
+        <button type="button" class="xp-small-button" data-toggle-view>Toggle thumbnails</button>
+      </div>
+      <div class="folder-view icon-view">
+        ${items.map(item => `
+          <button type="button" class="folder-item file-item ${item.name === "README.note" ? "readme-important" : ""}" data-xp-item data-name="${escapeHtml(item.name)}" data-action="${escapeHtml(item.action)}" data-book="${escapeHtml(item.book || "")}">
+            <img src="${escapeHtml(item.icon)}" alt="">
+            <span>${escapeHtml(item.name)}</span>
+          </button>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  window.openArtFolder = function () {
+    const win = makeXPWindow("Art", fileGrid(artItems()), {
+      id: uniqueId("art-folder"),
+      width: "min(720px, calc(100vw - 24px))",
+      height: "min(520px, calc(100vh - 70px))"
+    });
+
+    const view = win.querySelector(".folder-view");
+    win.querySelector("[data-close-current]").addEventListener("click", () => win.remove());
+    win.querySelector("[data-toggle-view]").addEventListener("click", () => view.classList.toggle("thumbnail-view"));
+
+    win.querySelectorAll(".folder-item").forEach(item => {
+      item.addEventListener("dblclick", () => {
+        const action = item.dataset.action;
+        if (action === "openArtReadme") window.openArtReadme();
+        if (action === "openArtBook") window.openArtBook(item.dataset.book);
+      });
+      item.addEventListener("click", () => {
+        win.querySelectorAll(".folder-item").forEach(i => i.classList.remove("selected"));
+        item.classList.add("selected");
+      });
+    });
+
+    if (!isMobileViewport()) {
+      setTimeout(() => window.openArtReadme(), 160);
+    }
+  };
+
+  window.openArtBook = function (bookKey) {
+    const book = window.ART_BOOKS && window.ART_BOOKS[bookKey];
+    if (!book) return;
+
+    let pages = [];
+    book.chapters.forEach((chapter, chapterIndex) => {
+      chapter.pages.forEach((page, pageIndex) => pages.push({...page, chapter: chapter.title, chapterIndex, pageIndex}));
+    });
+
+    // Spread 0 is the legend. Subsequent spreads show two pages at a time.
+    let spreadIndex = 0;
+    const totalSpreads = Math.ceil(pages.length / 2) + 1;
+
+    const content = `
+      <div class="book-app" data-book-key="${escapeHtml(bookKey)}">
+        <section class="book-page-wrap">
+          <div class="book-page"></div>
+          <div class="book-controls">
+            <button type="button" data-prev>← Previous</button>
+            <span data-count></span>
+            <button type="button" data-next>Next →</button>
+          </div>
+        </section>
+      </div>
+    `;
+
+    const win = makeXPWindow(book.title, content, {
+      id: uniqueId("book-app"),
+      width: "min(980px, calc(100vw - 24px))",
+      height: "min(700px, calc(100vh - 70px))"
+    });
+
+    const pageEl = win.querySelector(".book-page");
+    const countEl = win.querySelector("[data-count]");
+
+    function renderLegend() {
+      const left = `
+        <div class="book-spread-page">
+          <h3>${escapeHtml(book.title)}</h3>
+          <div>
+            <p>${escapeHtml(book.intro || "")}</p>
+            <p>Choose a chapter, or use the navigation buttons to browse the full book.</p>
+          </div>
+          <div class="book-caption">Legend / Chapters</div>
+        </div>
+      `;
+      const right = `
+        <div class="book-spread-page">
+          <h3>Chapters</h3>
+          <div class="book-chapter-list">
+            ${book.chapters.map((chapter, chapterIndex) => `
+              <button type="button" data-chapter="${chapterIndex}">
+                <strong>${escapeHtml(chapter.title)}</strong><br>
+                ${chapter.pages.length} page${chapter.pages.length === 1 ? "" : "s"}
+              </button>
+            `).join("")}
+          </div>
+          <div class="book-caption">Click a chapter to jump to it.</div>
+        </div>
+      `;
+      pageEl.innerHTML = `<div class="book-page-paper">${left}${right}</div>`;
+      pageEl.querySelectorAll("[data-chapter]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const chapterIndex = Number(btn.dataset.chapter);
+          const firstPageIndex = pages.findIndex(p => p.chapterIndex === chapterIndex);
+          spreadIndex = Math.floor(firstPageIndex / 2) + 1;
+          renderSpread();
+        });
+      });
+    }
+
+    function renderArtworkPage(page, blankText) {
+      if (!page) {
+        return `
+          <div class="book-spread-page">
+            <h3></h3>
+            <div class="book-media">${escapeHtml(blankText || "")}</div>
+            <div class="book-caption"></div>
+          </div>
+        `;
+      }
+      const media = page.type === "video"
+        ? `<video controls playsinline src="${escapeHtml(page.src)}"></video>`
+        : `<img src="${escapeHtml(page.src)}" alt="${escapeHtml(page.title)}">`;
+      return `
+        <div class="book-spread-page">
+          <h3>${escapeHtml(page.title)}</h3>
+          <div class="book-media">${media}</div>
+          <div class="book-caption">
+            <strong>${escapeHtml(page.chapter)}</strong>
+            <p>${escapeHtml(page.caption || "")}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSpread() {
+      if (spreadIndex <= 0) {
+        spreadIndex = 0;
+        renderLegend();
+      } else {
+        const firstPage = (spreadIndex - 1) * 2;
+        const leftPage = pages[firstPage];
+        const rightPage = pages[firstPage + 1];
+        pageEl.innerHTML = `<div class="book-page-paper">${renderArtworkPage(leftPage)}${renderArtworkPage(rightPage, "End of book")}</div>`;
+      }
+      countEl.textContent = spreadIndex === 0 ? `Legend / ${totalSpreads - 1} spreads` : `Spread ${spreadIndex} / ${totalSpreads - 1}`;
+    }
+
+    win.querySelector("[data-prev]").addEventListener("click", () => {
+      spreadIndex = Math.max(0, spreadIndex - 1);
+      renderSpread();
+    });
+    win.querySelector("[data-next]").addEventListener("click", () => {
+      spreadIndex = Math.min(totalSpreads - 1, spreadIndex + 1);
+      renderSpread();
+    });
+
+    renderSpread();
+  };
+})();
+
+
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('.desktop-icons>.desktop-icon').forEach(icon=>{
+    if(icon.dataset.open) saveDesktopIconPosition(icon);
+  });
+});
+
+
+

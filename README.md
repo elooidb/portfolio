@@ -135,3 +135,30 @@ The sound toggle is now inserted directly next to the date/time tray area. If th
 ## Art / Tattoo desktop split
 
 The visible desktop icon `Art & Tattoo` has been replaced with two desktop folders: `Art` and `Tattoo`. Opening `Art` auto-opens `README.note`. The three Art `.exe` files open book-style artwork browsers. Replace placeholder artwork files in `assets/art/` and edit `const artBooks` in `script.js` to point to PNG/JPG/SVG/GIF or MP4 files. For MP4 pages, set `type` to `video`.
+
+
+## Minimal artwork book viewer update
+
+The Art `.exe` files now open a simplified two-page book viewer.
+
+- First spread: chapter legend with clickable chapter links
+- Following spreads: two artwork pages at a time
+- Previous / Next buttons browse the whole book
+
+On mobile, the Art `README.note` no longer auto-opens. Instead, it blinks inside the folder so users can still tell it is important.
+
+
+## Rollback note
+
+This version rolls back to the state before the uploaded drawings were integrated.
+
+Folder icons have also been normalized so all folders use:
+
+`assets/icons/folder.svg`
+
+
+## Freeform desktop icons
+
+Desktop icons still start in the intended two-column layout, but users can now drag them anywhere on the desktop.
+
+Icon positions are saved in `localStorage`, so the layout persists in the same browser.

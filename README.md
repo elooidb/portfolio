@@ -162,3 +162,32 @@ Folder icons have also been normalized so all folders use:
 Desktop icons still start in the intended two-column layout, but users can now drag them anywhere on the desktop.
 
 Icon positions are saved in `localStorage`, so the layout persists in the same browser.
+
+
+## Art viewer functionality removed
+
+This package keeps the Art folder and its placeholder files, but removes the old book/minimal art viewer functionality and related media assets.
+
+Current Art folder files:
+
+- `README.note`
+- `observational.exe`
+- `experimental.exe`
+- `diary_DONOTREADTHIS.exe`
+
+The `.exe` files are placeholders for a future Art system.
+
+
+## Folder icons only
+
+Folder windows now display file-type icons only. Thumbnail/preview images inside folders have been removed or overridden.
+
+
+## Folder icon-only fix
+
+The folder item renderer `createWindowItem()` now outputs only the actual file/folder icon and label. It no longer generates thumbnail preview markup.
+
+
+## Mobile README pulse update
+
+On mobile, README files now use a softer pulse animation instead of a hard blink. The pulse stops after the README is tapped/opened once, with state saved in localStorage.

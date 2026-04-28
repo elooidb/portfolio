@@ -423,7 +423,7 @@ function closeBsod(){
 function closeWindow(id){const entry=openWindows.get(id);if(!entry)return;entry.windowEl.remove();entry.taskButton.remove();openWindows.delete(id);}
 function minimizeWindow(id){const entry=openWindows.get(id);if(!entry)return;entry.windowEl.classList.add('minimized');entry.taskButton.classList.remove('active');}
 function toggleMaximize(id){const entry=openWindows.get(id);if(!entry)return;const win=entry.windowEl;if(win.classList.contains('maximized')){win.classList.remove('maximized');win.querySelector('.maximize').textContent='□';}else{win.classList.remove('minimized');win.classList.add('maximized');win.querySelector('.maximize').textContent='❐';focusWindow(win);}}
-function createWindowItem(item){const button=document.createElement('button');button.className=`desktop-icon thumbnail-icon ${item.type==='folder'?'folder':'document'}`;button.innerHTML=`<span class="thumbnail ${thumbnailClass(item.id,item.type)}">${thumbnailContent(item.id,item.type)}</span><span class="icon-art ${item.type==='folder'?'folder-art':fileIconClass(item.id)}"></span><span class="label">${item.label}</span>`;button.addEventListener('click',()=>{document.querySelectorAll('.window-content .desktop-icon.selected').forEach(el=>el.classList.remove('selected'));button.classList.add('selected');playSound('click');openItem(item.id);});return button;}
+function createWindowItem(item){const button=document.createElement('button');button.className=`desktop-icon icon-only-item ${item.type==='folder'?'folder':'document'}`;button.innerHTML=`<span class="icon-art ${item.type==='folder'?'folder-art':fileIconClass(item.id)}"></span><span class="label">${item.label}</span>`;button.addEventListener('click',()=>{document.querySelectorAll('.window-content .desktop-icon.selected').forEach(el=>el.classList.remove('selected'));button.classList.add('selected');playSound('click');openItem(item.id);});return button;}
 function thumbnailClass(id,type){const data=items[id]||{};if(type==='folder')return 'folder-thumb';if(data.type==='image')return 'image-thumb';if((data.title||'').match(/mp4|mov/i))return 'video-thumb';if(data.type==='ie'||data.type==='external'||(data.title||'').match(/html/i))return 'web-thumb';if((data.title||'').match(/website/i))return 'web-thumb';return 'doc-thumb';}
 function thumbnailContent(id,type){const data=items[id]||{};if(type==='folder')return '<span class="thumb-folder-tab"></span><span class="thumb-folder-page"></span>';if(data.type==='image'&&data.asset)return `<img src="${data.asset}" alt="">`;if((data.title||'').match(/mp4|mov/i))return '<span class="play-triangle">▶</span>';if((data.title||'').match(/website/i))return '<span class="browser-bar"></span><span class="browser-block"></span>';return '<span class="doc-lines"></span>'}
 function fileIconClass(id){const type=items[id]?.type;if(type==='image')return'image-art';if(type==='book')return'exe-art';if(type==='ie'||type==='external')return'html-art';return'doc-art';}
@@ -717,271 +717,99 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-/* ===== Override: minimal book UI + mobile README blinking ===== */
-(function () {
-  function escapeHtml(value) {
-    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
+
+
+/* Art viewer functionality removed: placeholder handler */
+window.openArtPlaceholder = function (name) {
+  if (typeof openFileViewer === "function") {
+    openFileViewer(name || "Artwork placeholder", "Artwork viewer placeholder. A new Art system will be added later.");
+  } else {
+    alert((name || "Artwork placeholder") + "\n\nArtwork viewer placeholder. A new Art system will be added later.");
   }
+};
 
-  function isMobileViewport() {
-    return window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
-  }
-
-  function getWindowLayer() {
-    return document.getElementById("windows") || document.getElementById("desktop") || document.body;
-  }
-
-  function uniqueId(prefix) {
-    return prefix + "-" + Math.random().toString(36).slice(2, 9);
-  }
-
-  function focusXPWindow(win) {
-    if (typeof bringToFront === "function") {
-      try { bringToFront(win); return; } catch(e) {}
-    }
-    window.__xpZ = (window.__xpZ || 1000) + 1;
-    win.style.zIndex = window.__xpZ;
-  }
-
-  function makeXPWindow(title, content, opts = {}) {
-    const win = document.createElement("div");
-    win.className = "window xp-generated-window";
-    win.id = opts.id || uniqueId("window");
-    win.style.display = "block";
-    win.style.left = opts.left || "min(90px, 5vw)";
-    win.style.top = opts.top || "min(80px, 8vh)";
-    win.style.width = opts.width || "min(820px, calc(100vw - 24px))";
-    win.style.height = opts.height || "min(620px, calc(100vh - 70px))";
-    win.dataset.title = title;
-    win.innerHTML = `
-      <div class="title-bar">
-        <span>${escapeHtml(title)}</span>
-        <div class="window-controls">
-          <button type="button" data-win-minimize aria-label="Minimize">_</button>
-          <button type="button" data-win-maximize aria-label="Maximize">□</button>
-          <button type="button" data-win-close aria-label="Close">×</button>
-        </div>
-      </div>
-      <div class="window-body">${content}</div>
-      <div class="resize-handle" aria-hidden="true"></div>
-    `;
-    getWindowLayer().appendChild(win);
-    win.querySelector("[data-win-close]").addEventListener("click", () => win.remove());
-    win.querySelector("[data-win-minimize]").addEventListener("click", () => win.style.display = "none");
-    win.querySelector("[data-win-maximize]").addEventListener("click", () => {
-      if (win.dataset.maximized === "true") {
-        win.style.left = win.dataset.prevLeft || "80px";
-        win.style.top = win.dataset.prevTop || "80px";
-        win.style.width = win.dataset.prevWidth || "820px";
-        win.style.height = win.dataset.prevHeight || "620px";
-        win.dataset.maximized = "false";
-      } else {
-        win.dataset.prevLeft = win.style.left;
-        win.dataset.prevTop = win.style.top;
-        win.dataset.prevWidth = win.style.width;
-        win.dataset.prevHeight = win.style.height;
-        win.style.left = "0";
-        win.style.top = "0";
-        win.style.width = "100vw";
-        win.style.height = "calc(100vh - 40px)";
-        win.dataset.maximized = "true";
-      }
-      focusXPWindow(win);
-    });
-    win.addEventListener("mousedown", () => focusXPWindow(win));
-    focusXPWindow(win);
-    if (typeof registerWindow === "function") {
-      try { registerWindow(win, title); } catch(e) {}
-    }
-    if (typeof playOpenSound === "function") {
-      try { playOpenSound(); } catch(e) {}
-    }
-    return win;
-  }
-
-  function artItems() {
-    return [
-      { name: "README.note", icon: "assets/icons/note.svg", action: "openArtReadme" },
-      { name: "observational.exe", icon: "assets/icons/exe.svg", action: "openArtBook", book: "observational.exe" },
-      { name: "experimental.exe", icon: "assets/icons/exe.svg", action: "openArtBook", book: "experimental.exe" },
-      { name: "diary_DONOTREADTHIS.exe", icon: "assets/icons/exe.svg", action: "openArtBook", book: "diary_DONOTREADTHIS.exe" }
-    ];
-  }
-
-  function fileGrid(items) {
-    return `
-      <div class="folder-toolbar">
-        <button type="button" class="xp-small-button" data-close-current>Back</button>
-        <span class="folder-toolbar-spacer"></span>
-        <button type="button" class="xp-small-button" data-toggle-view>Toggle thumbnails</button>
-      </div>
-      <div class="folder-view icon-view">
-        ${items.map(item => `
-          <button type="button" class="folder-item file-item ${item.name === "README.note" ? "readme-important" : ""}" data-xp-item data-name="${escapeHtml(item.name)}" data-action="${escapeHtml(item.action)}" data-book="${escapeHtml(item.book || "")}">
-            <img src="${escapeHtml(item.icon)}" alt="">
-            <span>${escapeHtml(item.name)}</span>
-          </button>
-        `).join("")}
-      </div>
-    `;
-  }
-
-  window.openArtFolder = function () {
-    const win = makeXPWindow("Art", fileGrid(artItems()), {
-      id: uniqueId("art-folder"),
-      width: "min(720px, calc(100vw - 24px))",
-      height: "min(520px, calc(100vh - 70px))"
-    });
-
-    const view = win.querySelector(".folder-view");
-    win.querySelector("[data-close-current]").addEventListener("click", () => win.remove());
-    win.querySelector("[data-toggle-view]").addEventListener("click", () => view.classList.toggle("thumbnail-view"));
-
-    win.querySelectorAll(".folder-item").forEach(item => {
-      item.addEventListener("dblclick", () => {
-        const action = item.dataset.action;
-        if (action === "openArtReadme") window.openArtReadme();
-        if (action === "openArtBook") window.openArtBook(item.dataset.book);
-      });
-      item.addEventListener("click", () => {
-        win.querySelectorAll(".folder-item").forEach(i => i.classList.remove("selected"));
-        item.classList.add("selected");
-      });
-    });
-
-    if (!isMobileViewport()) {
-      setTimeout(() => window.openArtReadme(), 160);
-    }
-  };
-
-  window.openArtBook = function (bookKey) {
-    const book = window.ART_BOOKS && window.ART_BOOKS[bookKey];
-    if (!book) return;
-
-    let pages = [];
-    book.chapters.forEach((chapter, chapterIndex) => {
-      chapter.pages.forEach((page, pageIndex) => pages.push({...page, chapter: chapter.title, chapterIndex, pageIndex}));
-    });
-
-    // Spread 0 is the legend. Subsequent spreads show two pages at a time.
-    let spreadIndex = 0;
-    const totalSpreads = Math.ceil(pages.length / 2) + 1;
-
-    const content = `
-      <div class="book-app" data-book-key="${escapeHtml(bookKey)}">
-        <section class="book-page-wrap">
-          <div class="book-page"></div>
-          <div class="book-controls">
-            <button type="button" data-prev>← Previous</button>
-            <span data-count></span>
-            <button type="button" data-next>Next →</button>
-          </div>
-        </section>
-      </div>
-    `;
-
-    const win = makeXPWindow(book.title, content, {
-      id: uniqueId("book-app"),
-      width: "min(980px, calc(100vw - 24px))",
-      height: "min(700px, calc(100vh - 70px))"
-    });
-
-    const pageEl = win.querySelector(".book-page");
-    const countEl = win.querySelector("[data-count]");
-
-    function renderLegend() {
-      const left = `
-        <div class="book-spread-page">
-          <h3>${escapeHtml(book.title)}</h3>
-          <div>
-            <p>${escapeHtml(book.intro || "")}</p>
-            <p>Choose a chapter, or use the navigation buttons to browse the full book.</p>
-          </div>
-          <div class="book-caption">Legend / Chapters</div>
-        </div>
-      `;
-      const right = `
-        <div class="book-spread-page">
-          <h3>Chapters</h3>
-          <div class="book-chapter-list">
-            ${book.chapters.map((chapter, chapterIndex) => `
-              <button type="button" data-chapter="${chapterIndex}">
-                <strong>${escapeHtml(chapter.title)}</strong><br>
-                ${chapter.pages.length} page${chapter.pages.length === 1 ? "" : "s"}
-              </button>
-            `).join("")}
-          </div>
-          <div class="book-caption">Click a chapter to jump to it.</div>
-        </div>
-      `;
-      pageEl.innerHTML = `<div class="book-page-paper">${left}${right}</div>`;
-      pageEl.querySelectorAll("[data-chapter]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const chapterIndex = Number(btn.dataset.chapter);
-          const firstPageIndex = pages.findIndex(p => p.chapterIndex === chapterIndex);
-          spreadIndex = Math.floor(firstPageIndex / 2) + 1;
-          renderSpread();
-        });
-      });
-    }
-
-    function renderArtworkPage(page, blankText) {
-      if (!page) {
-        return `
-          <div class="book-spread-page">
-            <h3></h3>
-            <div class="book-media">${escapeHtml(blankText || "")}</div>
-            <div class="book-caption"></div>
-          </div>
-        `;
-      }
-      const media = page.type === "video"
-        ? `<video controls playsinline src="${escapeHtml(page.src)}"></video>`
-        : `<img src="${escapeHtml(page.src)}" alt="${escapeHtml(page.title)}">`;
-      return `
-        <div class="book-spread-page">
-          <h3>${escapeHtml(page.title)}</h3>
-          <div class="book-media">${media}</div>
-          <div class="book-caption">
-            <strong>${escapeHtml(page.chapter)}</strong>
-            <p>${escapeHtml(page.caption || "")}</p>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderSpread() {
-      if (spreadIndex <= 0) {
-        spreadIndex = 0;
-        renderLegend();
-      } else {
-        const firstPage = (spreadIndex - 1) * 2;
-        const leftPage = pages[firstPage];
-        const rightPage = pages[firstPage + 1];
-        pageEl.innerHTML = `<div class="book-page-paper">${renderArtworkPage(leftPage)}${renderArtworkPage(rightPage, "End of book")}</div>`;
-      }
-      countEl.textContent = spreadIndex === 0 ? `Legend / ${totalSpreads - 1} spreads` : `Spread ${spreadIndex} / ${totalSpreads - 1}`;
-    }
-
-    win.querySelector("[data-prev]").addEventListener("click", () => {
-      spreadIndex = Math.max(0, spreadIndex - 1);
-      renderSpread();
-    });
-    win.querySelector("[data-next]").addEventListener("click", () => {
-      spreadIndex = Math.min(totalSpreads - 1, spreadIndex + 1);
-      renderSpread();
-    });
-
-    renderSpread();
-  };
-})();
-
-
-window.addEventListener('resize',()=>{
-  document.querySelectorAll('.desktop-icons>.desktop-icon').forEach(icon=>{
-    if(icon.dataset.open) saveDesktopIconPosition(icon);
-  });
+document.querySelectorAll('[data-name="README.note"]').forEach(el=>{
+  el.classList.add('readme-important');
 });
 
 
 
+/* Mobile README pulse: stop after first interaction */
+(function () {
+  const STORAGE_KEY = "elooi-xp-readme-seen-v1";
+
+  function isMobile() {
+    return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+  }
+
+  function getSeen() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function setSeen(name) {
+    const seen = getSeen();
+    seen[name || "README.note"] = true;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seen));
+  }
+
+  function isReadmeElement(el) {
+    if (!el) return false;
+    const name = (el.dataset && el.dataset.name) || el.textContent || "";
+    return name.includes("README.note") || name.toLowerCase().includes("readme");
+  }
+
+  function applyReadmePulseState(root) {
+    const seen = getSeen();
+    const scope = root || document;
+    scope.querySelectorAll('[data-name="README.note"], .folder-item, .desktop-icon').forEach(el => {
+      if (!isReadmeElement(el)) return;
+      el.classList.add("readme-important");
+      if (seen["README.note"] || seen[(el.dataset && el.dataset.name) || "README.note"]) {
+        el.classList.add("readme-seen");
+      }
+    });
+  }
+
+  function markReadmeSeen(target) {
+    const el = target && target.closest ? target.closest('[data-name="README.note"], .folder-item, .desktop-icon') : null;
+    if (!el || !isReadmeElement(el)) return;
+    setSeen((el.dataset && el.dataset.name) || "README.note");
+    el.classList.add("readme-seen");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    applyReadmePulseState();
+
+    // Keep catching README items created later when folders open.
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(m => {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType === 1) applyReadmePulseState(node);
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+
+  // Stop pulsing as soon as user taps/clicks/double-clicks the README on mobile.
+  ["pointerdown", "click", "dblclick"].forEach(eventName => {
+    document.addEventListener(eventName, event => {
+      if (isMobile()) markReadmeSeen(event.target);
+    }, true);
+  });
+
+  // Also stop pulsing when the README opener function runs.
+  const originalOpenArtReadme = window.openArtReadme;
+  window.openArtReadme = function () {
+    setSeen("README.note");
+    applyReadmePulseState();
+    if (typeof originalOpenArtReadme === "function") {
+      return originalOpenArtReadme.apply(this, arguments);
+    }
+  };
+})();
